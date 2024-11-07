@@ -1,68 +1,130 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; 
+import axios from "axios";
 import TableComponent from "../components/TableComponnet";
 import SelectComponent from "../components/selectComponent";
 import ProductsInfo from "../components/ProductsInfo";
-
-// Define your columns, including a render function for the 'Action' column
-const columns = [
-  { key: "product_name", label: "Product Name" },
-  { key: "product_category", label: "Category" },
-  { key: "selling_price", label: "Unit Price" },
-  { key: "discount_value", label: "Discount Value" },
-  {
-    key: "Action",
-    label: "Action",
-    render: (row) => (
-      <SelectComponent
-        options={[
-          { value: "edit", label: "Edit" },
-          { value: "delete", label: "Delete" },
-          { value: "view", label: "View" },
-        ]}
-        minHeight="35px"
-        fontSize="14px"
-        width="160px"
-        onChange={(selectedOption) => handleAction(selectedOption, row)} 
-        defaultValue={{ value: "edit", label: "Edit" }}
-      />
-    ),
-  },
-  { key: "status", label: "Status" },
-];
-
-const handleAction = (selectedOption, row) => {
-  console.log(`Selected ${selectedOption.value} for ${row.product_name}`);
-};
-
-const data = [
-  {
-    product_name: "Wireless Mouse",
-    product_category: "Electronics",
-    selling_price: "$25.99",
-    discount_value: "$10.00",
-    status: "available",
-  },
-  {
-    product_name: "Organic Shampoo",
-    product_category: "Personal Care",
-    selling_price: "$8.99",
-    discount_value: "$1.00",
-    status: "available",
-  },
-  {
-    product_name: "Desk Lamp",
-    product_category: "Home Decor",
-    selling_price: "$45.50",
-    discount_value: "$15.00",
-    status: "available",
-  },
-];
+import Loader from "../components/loader";
 
 function Home() {
+  const [data, setData] = useState([]);
+  const [ennableLoader,setEnableLoader] = useState(true);
+  const [tabSelected,setTabSelected] = useState("allProducts");
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [lowStockItems,setLowStockItem] = useState([]);
+  const navigate = useNavigate(); 
+
+  const handleAction = async (selectedOption, row) => {
+    setEnableLoader(true);
+    
+    try {
+      const response = await axios.get("https://inventoryapi-lme6.onrender.com/products/id", {
+        headers: {
+          "product_id": row.product_id
+        }
+      });
+      
+      const productData = response.data; // This will be the product data you want to pass
+  
+      setEnableLoader(false);
+  
+      // Now pass only the necessary data (e.g., product details)
+      if (selectedOption.value === "edit" && productData) {
+        navigate("/inventory", { state: { editProduct: productData } });
+      }
+  
+      if (selectedOption.value === "view" && productData) {
+        navigate("/view-product", { state: { product: productData } });
+      }
+    } catch (error) {
+      console.error("Error fetching product data:", error);
+      setEnableLoader(false);
+    }
+  };
+  
+  
+
+  const columns = [
+    {
+      key: "image_data",
+      label: "Image",
+      render: (row) => (
+        row.image_data ? (
+          <img
+            src={`data:image/jpeg;base64,${row.image_data}`}
+            alt="Product"
+            style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+          />
+        ) : (
+          <span>No Image</span>
+        )
+      ),
+    },
+    { key: "product_name", label: "Product Name" },
+    { key: "product_category", label: "Category" },
+    { key: "cost_price", label: "Unit Price" },
+    { key: "discount_value", label: "Discount Value" },
+    {key:"quantity_in_stock",label:"In-Stock"},
+    {
+      key: "Action",
+      label: "Action",
+      render: (row) => (
+        <SelectComponent
+          options={[
+            { value: "edit", label: "Edit" },
+            { value: "delete", label: "Delete" },
+            { value: "view", label: "View" },
+          ]}
+          minHeight="35px"
+          fontSize="14px"
+          width="160px"
+          onChange={(selectedOption) => handleAction(selectedOption, row)}
+          defaultValue={{ value: "edit", label: "Edit" }}
+        />
+      ),
+    },
+    { key: "status", label: "Status" },
+  ];
+  const handleSelectedProductsChange = (selectedProductIds) => {
+    console.log(selectedProductIds)
+    setSelectedProducts(selectedProductIds);
+  };
+  const onCategoryChanged = (item)=>{
+      setTabSelected(item);
+  }
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get("https://inventoryapi-lme6.onrender.com/products");
+        const fetchedData = response.data.data;
+        setData(fetchedData);
+        setEnableLoader(false);
+  
+        // Filter low stock items after setting the data
+        const lowStockItems = fetchedData.filter(item => item.quantity_in_stock <15);
+        setLowStockItem(lowStockItems);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+  
+    fetchData();
+  }, []);
+  
   return (
     <div>
-      <ProductsInfo/>
-      <TableComponent columns={columns} data={data} />
+      {ennableLoader?<Loader/>:null}
+      <ProductsInfo
+      noOfProducts = {data.length}
+      activeProducts = {data.length}
+      lowStockItems = {lowStockItems.length}
+      onCategoryChanged = {onCategoryChanged}
+      />
+      <TableComponent 
+      columns={columns}
+      data={tabSelected==="userGroup"?lowStockItems:data} 
+      onSelectedProductsChange={handleSelectedProductsChange} />
     </div>
   );
 }

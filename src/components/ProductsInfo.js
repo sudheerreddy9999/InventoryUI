@@ -1,12 +1,17 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; 
 import { FolderIcon, UserGroupIcon,PlusIcon } from "@heroicons/react/outline";
 
-const ProductsInfo = () => {
+const ProductsInfo = (props) => {
   const [selectedItem, setSelectedItem] = useState('allProducts');
-
+  const navigate = useNavigate(); 
   const handleSelectItem = (item) => {
     setSelectedItem(item);
+    props.onCategoryChanged(item)
   };
+  const handleAddNewProd = ()=>{
+    navigate("/inventory");
+  }
 
   return (
     <div>
@@ -14,7 +19,7 @@ const ProductsInfo = () => {
             <div>
                 <p className="font-medium text-xl">Inventory summary</p>
             </div>
-            <div>
+            <div onClick={handleAddNewProd}>
                 <button className="flex bg-blue-600 text-white px-3 py-2 text-sm rounded-md"><PlusIcon className="w-5 h-5 text-white"></PlusIcon>Add new Product</button>
             </div>
         </div>
@@ -31,11 +36,11 @@ const ProductsInfo = () => {
         <div className="flex space-x-40">
           <div>
             <p className={`pb-2 ${selectedItem === "allProducts" ? "text-white" : "text-black"}`}>All products</p>
-            <p className={`pb-2 ${selectedItem === "allProducts" ? "text-white" : "text-black"}`}>350</p>
+            <p className={`pb-2 ${selectedItem === "allProducts" ? "text-white" : "text-black"}`}>{props.noOfProducts}</p>
           </div>
           <div>
             <p className={`pb-2 ${selectedItem === "allProducts" ? "text-white" : "text-black"}`}>Active products</p>
-            <p className={`pb-2 ${selectedItem === "allProducts" ? "text-white" : "text-black"}`}>316</p>
+            <p className={`pb-2 ${selectedItem === "allProducts" ? "text-white" : "text-black"}`}>{props.activeProducts}</p>
           </div>
         </div>
       </div>
@@ -52,7 +57,7 @@ const ProductsInfo = () => {
         <div className="flex space-x-40">
           <div>
             <p className={`pb-2 ${selectedItem === "userGroup" ? "text-white" : "text-black"}`}>Low Stock Alert</p>
-            <p className={`pb-2 ${selectedItem === "userGroup" ? "text-white" : "text-black"}`}>50</p>
+            <p className={`pb-2 ${selectedItem === "userGroup" ? "text-white" : "text-black"}`}>{props.lowStockItems}</p>
           </div>
           <div>
             <p className={`pb-2 ${selectedItem === "userGroup" ? "text-white" : "text-black"}`}>Expired</p>
